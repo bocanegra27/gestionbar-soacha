@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<main class="container mx-auto p-4 md:p-8">
+    <a href="{% url 'panel_mesas' %}" class="text-blue-600 hover:underline mb-6 inline-block">&larr; Volver al Panel de Mesas</a>
+<h1>Gestionando Pedido: <span class="text-sky-700">{{ pedido.nombre_cliente }}</span></h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-1 bg-white shadow-md rounded-lg p-6 h-fit">
+            <h2 class="text-2xl font-bold mb-4 border-b pb-2">Cuenta Actual</h2>
+            {% if pedido.detalles.all %}
+                <ul class="space-y-4 mb-4">
+                    {% for item in pedido.detalles.all %}
+                    <li class="border-b pb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-semibold">{{ item.producto.nombre }}</span>
+                            <span class="font-medium">${{ item.precio_venta|floatformat:0|intcomma }} c/u</span>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <form action="{% url 'actualizar_cantidad' item.id %}" method="POST" class="flex items-center">
+                                {% csrf_token %}
+                                <input type="number" name="cantidad" value="{{ item.cantidad }}" class="w-16 text-center border rounded-md py-1">
+                                <button type="submit" class="bg-gray-200 hover:bg-gray-300 text-black font-bold py-1 px-2 rounded-md ml-2 text-xs">OK</button>
+                            </form>
+
+                            <form action="{% url 'eliminar_detalle' item.id %}" method="POST">
+                                {% csrf_token %}
+                                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-md">🗑️</button>
+                            </form>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="text-right text-2xl font-bold text-gray-900 border-t pt-4">
+                    TOTAL: ${{ pedido.total|floatformat:0|intcomma }}
+                </div>
+
+                <div class="mt-8 flex justify-end space-x-4">
+                    <form action="{% url 'cancelar_pedido' pedido.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Cancelar Pedido</button>
+                    </form>
+            
+                    <form action="{% url 'facturar_pedido' pedido.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Finalizar y Facturar</button>
+                    </form>
+                </div>
+
+            {% else %}
+                <p class="text-gray-500">Aún no se han añadido productos.</p>
+            {% endif %}
+        </div>
+
+        <div class="lg:col-span-2">
+            <h2 class="text-2xl font-bold mb-4">Añadir Productos</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {% for producto in productos %}
+<div class="bg-white shadow-md rounded-lg p-4 flex flex-col justify-between 
+            {% if producto.stock <= 10 and producto.stock > 0 %} border-2 border-yellow-400 {% elif producto.stock == 0 %} border-2 border-red-400 opacity-60 {% endif %}">
+    <div>
+        <p class="font-semibold text-gray-800">{{ producto.nombre }}</p>
+        <p class="text-sm text-gray-500 mb-2">{{ producto.categoria.nombre }}</p>
+        
+        {% if producto.stock <= 20 and producto.stock > 0 %}
+            <p class="text-sm font-bold text-yellow-600">¡Quedan solo {{ producto.stock }}!</p>
+        {% elif producto.stock == 0 %}
+            <p class="text-sm font-bold text-red-600">AGOTADO</p>
+        {% endif %}
+
+    </div>
+    <div class="flex justify-between items-center mt-4">
+        <span class="text-lg font-medium text-gray-900">${{ producto.precio|floatformat:0|intcomma }}</span>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="producto_id" value="{{ producto.id }}">
+            <button type="submit" 
+                    class="font-bold py-2 px-3 rounded-lg 
+                           {% if producto.stock > 0 %} bg-blue-600 hover:bg-blue-700 text-white 
+                           {% else %} bg-gray-300 text-gray-500 cursor-not-allowed {% endif %}"
+                    {% if producto.stock == 0 %} disabled {% endif %}>
+                Añadir
+            </button>
+        </form>
+    </div>
+</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

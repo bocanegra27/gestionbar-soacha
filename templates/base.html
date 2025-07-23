@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GestionBar Soacha</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+    
+    <nav class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="{% if user.is_authenticated %}{% url 'panel_mesas' %}{% else %}{% url 'login' %}{% endif %}" class="text-xl font-bold text-sky-700">GestionBar Soacha</a>
+            
+            {% if user.is_authenticated %}
+            <div>
+                <span class="text-gray-800 mr-4">Hola, {{ user.username }}</span>
+                <form action="{% url 'logout' %}" method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-lg text-sm">Cerrar Sesión</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% if messages %}
+        <div class="container mx-auto mt-4 px-4">
+            {% for message in messages %}
+            <div class="p-4 mb-4 text-sm rounded-lg {% if message.tags == 'error' %} bg-red-100 text-red-700 {% else %} bg-green-100 text-green-700 {% endif %}" role="alert">
+                <span class="font-medium">{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% block content %}
+    {% endblock %}
+
+</body>
+</html>
