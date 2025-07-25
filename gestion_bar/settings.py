@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'productos',
     'ventas',
     'reportes',
+    'juegos'
 ]
 
 MIDDLEWARE = [
@@ -93,7 +94,7 @@ DATABASES = {
 # Internationalization
 # ... (esta sección no se cambia, asegúrate de que LANGUAGE_CODE sea 'es-CO') ...
 LANGUAGE_CODE = 'es-CO'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Bogota'
 USE_I18N = True
 USE_TZ = True
 

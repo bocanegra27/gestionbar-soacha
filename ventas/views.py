@@ -116,38 +116,43 @@ def actualizar_cantidad_vista(request, detalle_id):
 @login_required
 @transaction.atomic
 def facturar_pedido_vista(request, pedido_id):
-    # Usamos POST para mayor seguridad en operaciones que modifican datos
     if request.method == 'POST':
         pedido = get_object_or_404(Pedido, id=pedido_id)
-                # --- LÓGICA NUEVA PARA EL STOCK ---
+
+        # --- LÓGICA DE COMPROBACIÓN CORREGIDA ---
+        # 1. PRIMERO, revisamos si hay rondas sin resolver. Esta es la prioridad.
+        rondas_pendientes = pedido.rondas_bolirana.filter(estado__in=['EN_JUEGO', 'PENDIENTE'])
+        if rondas_pendientes.exists():
+            messages.error(request, 'No se puede facturar. La cuenta tiene rondas de bolirana sin resolver. Por favor, finalícelas o cancélelas primero.')
+            return redirect('gestionar_pedido', mesa_id=pedido.mesa.id)
+
+        # 2. SÓLO SI no hay rondas pendientes, revisamos si el total es cero.
+        if pedido.total == 0:
+            messages.error(request, 'No se puede facturar una cuenta con total $0. Usa el botón "Cerrar / Cancelar" para liberar la mesa.')
+            return redirect('gestionar_pedido', mesa_id=pedido.mesa.id)
+        # --- FIN DE LA LÓGICA CORREGIDA ---
+
+        # Si pasa ambas comprobaciones, el resto del código sigue igual
         for detalle in pedido.detalles.all():
             producto = detalle.producto
             if producto.stock < detalle.cantidad:
-                # Si no hay suficiente stock, mostramos un error y no continuamos
-                messages.error(request, f"No hay stock suficiente para el producto '{producto.nombre}'. Venta no completada.")
-                # Redirigimos de vuelta a la página de gestión del pedido
+                messages.error(request, f"No hay stock suficiente para '{producto.nombre}'. Venta no completada.")
                 return redirect('gestionar_pedido', mesa_id=pedido.mesa.id)
             
-            # Restamos la cantidad del stock
             producto.stock -= detalle.cantidad
             producto.save()
-        # --- FIN LÓGICA NUEVA ---
-        
-        # Cambiamos el estado del pedido
+
+        pedido.actualizar_total()
         pedido.estado = 'FACTURADO'
         pedido.save()
         
-        # Liberamos la mesa asociada
         mesa = pedido.mesa
         if mesa:
             mesa.estado = 'LIBRE'
             mesa.save()
             
-        # Limpiamos el ID del pedido de la sesión
-        if 'pedido_id' in request.session and request.session['pedido_id'] == pedido.id:
-            del request.session['pedido_id']
+        messages.success(request, f"El pedido de '{pedido.nombre_cliente}' ha sido facturado exitosamente.")
             
-    # Redirigimos al panel principal
     return redirect('panel_mesas')
 
 @login_required
@@ -155,19 +160,40 @@ def facturar_pedido_vista(request, pedido_id):
 def cancelar_pedido_vista(request, pedido_id):
     if request.method == 'POST':
         pedido = get_object_or_404(Pedido, id=pedido_id)
-
-        # Cambiamos el estado del pedido a Anulado
-        pedido.estado = 'ANULADO'
-        pedido.save()
-
-        # Liberamos la mesa
         mesa = pedido.mesa
+
+        # Comprobación de seguridad para rondas sin resolver
+        rondas_pendientes = pedido.rondas_bolirana.filter(estado__in=['EN_JUEGO', 'PENDIENTE'])
+        if rondas_pendientes.exists():
+            messages.error(request, 'No se puede cerrar. La cuenta aún tiene rondas de bolirana sin resolver.')
+            return redirect('gestionar_pedido', mesa_id=mesa.id)
+
+        # --- LÓGICA INTELIGENTE NUEVA ---
+        if pedido.total > 0:
+            # Si la cuenta tiene productos, se anula.
+            pedido.estado = 'ANULADO'
+            pedido.save()
+            messages.warning(request, f"La cuenta de '{pedido.nombre_cliente}' ha sido ANULADA.")
+        else:
+            # Si la cuenta está en cero, intentamos borrarla.
+            # Gracias a on_delete=PROTECT, esto fallará si hay rondas asociadas,
+            # pero las rondas NO se borrarán.
+            try:
+                nombre_cuenta = pedido.nombre_cliente
+                pedido.delete()
+                messages.info(request, f"La cuenta vacía de '{nombre_cuenta}' ha sido cerrada y eliminada.")
+            except Exception:
+                # Si no se puede borrar (porque tiene rondas), simplemente la cerramos
+                # marcándola como facturada para que no aparezca como abierta.
+                pedido.estado = 'FACTURADO'
+                pedido.save()
+                messages.info(request, f"La cuenta de '{pedido.nombre_cliente}' (solo bolirana) ha sido cerrada.")
+        # --- FIN DE LA LÓGICA ---
+
+        # En todos los casos, liberamos la mesa
         if mesa:
             mesa.estado = 'LIBRE'
             mesa.save()
-
-        if 'pedido_id' in request.session and request.session['pedido_id'] == pedido.id:
-            del request.session['pedido_id']
 
     return redirect('panel_mesas')
 

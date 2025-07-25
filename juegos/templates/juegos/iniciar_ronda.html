@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="container mx-auto p-4 md:p-8">
+    <div class="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-8 mt-10">
+        <h1 class="text-2xl font-bold text-center mb-6">Iniciar Ronda de Bolirana</h1>
+        <p class="text-center text-gray-600 mb-4">Para la cuenta: <strong class="text-sky-700">{{ pedido.nombre_cliente }}</strong></p>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <h3 class="text-lg font-semibold mt-6 mb-2">Productos en Juego:</h3>
+            {{ formset.management_form }}
+            <div id="formset-container" class="space-y-2">
+                {% for form in formset %}
+                    <div class="form-row flex items-center space-x-2">
+                        <div class="flex-grow">{{ form.producto }}</div>
+                        <div class="w-20">{{ form.cantidad }}</div>
+                        <div class="w-10">{% if form.can_delete %}{{ form.DELETE }}{% endif %}</div>
+                    </div>
+                {% endfor %}
+            </div>
+            <button type="button" id="add-form" class="text-sm text-blue-600 hover:underline mt-2">+ Añadir otro producto</button>
+
+            <div class="flex items-center justify-between mt-8">
+                <a href="{% url 'gestionar_pedido' pedido.mesa.id %}" class="text-red-600 hover:underline">Cancelar</a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Iniciar Ronda</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Plantilla oculta para nuevos formularios de producto -->
+    <template id="form-template">
+        <div class="form-row flex items-center space-x-2">
+            <div class="flex-grow">__prefix__-producto</div>
+            <div class="w-20">__prefix__-cantidad</div>
+            <div class="w-10">__prefix__-DELETE</div>
+        </div>
+    </template>
+
+    <!-- Script para añadir más formularios de producto dinámicamente -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addFormBtn = document.getElementById('add-form');
+        const formsetContainer = document.getElementById('formset-container');
+        const totalFormsInput = document.getElementById('id_detalles-TOTAL_FORMS');
+        const formTemplate = document.getElementById('form-template');
+
+        // Clonar los widgets originales para usarlos en la plantilla
+        const productWidget = document.querySelector('[name="detalles-0-producto"]').cloneNode(true);
+        const quantityWidget = document.querySelector('[name="detalles-0-cantidad"]').cloneNode(true);
+        const deleteWidget = document.querySelector('[name="detalles-0-DELETE"]');
+
+        addFormBtn.addEventListener('click', function() {
+            let formIndex = parseInt(totalFormsInput.value);
+            
+            // Creamos un nuevo div para la fila del formulario
+            const newFormRow = document.createElement('div');
+            newFormRow.classList.add('form-row', 'flex', 'items-center', 'space-x-2');
+
+            // Clonamos y configuramos el widget del producto
+            const newProductWidget = productWidget.cloneNode(true);
+            newProductWidget.name = `detalles-${formIndex}-producto`;
+            newProductWidget.id = `id_detalles-${formIndex}-producto`;
+            const productContainer = document.createElement('div');
+            productContainer.classList.add('flex-grow');
+            productContainer.appendChild(newProductWidget);
+
+            // Clonamos y configuramos el widget de la cantidad
+            const newQuantityWidget = quantityWidget.cloneNode(true);
+            newQuantityWidget.name = `detalles-${formIndex}-cantidad`;
+            newQuantityWidget.id = `id_detalles-${formIndex}-cantidad`;
+            newQuantityWidget.value = 1;
+            const quantityContainer = document.createElement('div');
+            quantityContainer.classList.add('w-20');
+            quantityContainer.appendChild(newQuantityWidget);
+
+            // Clonamos y configuramos el widget de eliminación (si existe)
+            const deleteContainer = document.createElement('div');
+            deleteContainer.classList.add('w-10');
+            if(deleteWidget) {
+                const newDeleteWidget = deleteWidget.cloneNode(true);
+                newDeleteWidget.name = `detalles-${formIndex}-DELETE`;
+                newDeleteWidget.id = `id_detalles-${formIndex}-DELETE`;
+                deleteContainer.appendChild(newDeleteWidget);
+            }
+
+            // Añadimos todo a la nueva fila
+            newFormRow.appendChild(productContainer);
+            newFormRow.appendChild(quantityContainer);
+            newFormRow.appendChild(deleteContainer);
+
+            // Añadimos la nueva fila al contenedor
+            formsetContainer.appendChild(newFormRow);
+            totalFormsInput.value = formIndex + 1;
+        });
+    });
+</script>
+</main>
+{% endblock %}
