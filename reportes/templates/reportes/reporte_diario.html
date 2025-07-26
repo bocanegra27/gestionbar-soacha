@@ -6,14 +6,13 @@
     <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
         <h1 class="text-3xl font-bold mb-4 sm:mb-0 text-gray-900">📊 Reporte de Ventas Diarias</h1>
         <div class="flex flex-col sm:flex-row items-center">
-<div>
-    <a href="{% url 'panel_mesas' %}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">&larr; Volver al Panel</a>
-    <a href="{% url 'cierre_caja' %}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg ml-2">Realizar Cierre de Caja</a>
-</div>
+            <div>
+                <a href="{% url 'panel_mesas' %}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">&larr; Volver al Panel</a>
+                <a href="{% url 'cierre_caja' %}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg ml-2">Realizar Cierre de Caja</a>
+            </div>
         </div>
     </div>
 
-    <!-- Formulario para seleccionar la fecha -->
     <div class="bg-white shadow-md rounded-lg p-4 mb-6">
         <form method="GET">
             <label for="fecha" class="font-semibold mr-2">Seleccionar Fecha:</label>
@@ -22,7 +21,6 @@
         </form>
     </div>
 
-    <!-- Tabla de Ventas de Cuentas -->
     <h2 class="text-2xl font-semibold mb-3">Ventas de Cuentas</h2>
     <div class="bg-white shadow-md rounded-lg overflow-hidden mb-8">
         <table class="min-w-full">
@@ -30,7 +28,8 @@
                 <tr>
                     <th class="py-3 px-4 text-left"># Cuenta</th>
                     <th class="py-3 px-4 text-left">Nombre / Mesa</th>
-                    <th class="py-3 px-4 text-left">Hora</th>
+                    <th class="py-3 px-4 text-left">Hora Apertura</th>
+                    <th class="py-3 px-4 text-left">Hora Facturación</th>
                     <th class="py-3 px-4 text-right">Total</th>
                 </tr>
             </thead>
@@ -40,25 +39,26 @@
                     <td class="py-3 px-4">#{{ pedido.id }}</td>
                     <td class="py-3 px-4">{{ pedido.nombre_cliente }}</td>
                     <td class="py-3 px-4">{{ pedido.fecha_hora|time:"g:i A" }}</td>
+                    <td class="py-3 px-4">{{ pedido.fecha_facturacion|time:"g:i A" }}</td>
                     <td class="py-3 px-4 text-right font-medium">${{ pedido.total|floatformat:0|intcomma }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center py-10 text-gray-500">No se encontraron ventas de cuentas para esta fecha.</td>
+                    <td colspan="5" class="text-center py-10 text-gray-500">No se encontraron ventas de cuentas para esta fecha.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    <!-- Tabla de Ventas de Bolirana -->
     <h2 class="text-2xl font-semibold mb-3">Ventas de Bolirana</h2>
     <div class="bg-white shadow-md rounded-lg overflow-hidden">
         <table class="min-w-full">
             <thead class="bg-gray-200">
                 <tr>
                     <th class="py-3 px-4 text-left">Perdedor</th>
-                    <th class="py-3 px-4 text-left">Hora</th>
+                    <th class="py-3 px-4 text-left">Hora Inicio</th>
+                    <th class="py-3 px-4 text-left">Hora Pago</th>
                     <th class="py-3 px-4 text-right">Total Ronda</th>
                 </tr>
             </thead>
@@ -67,18 +67,18 @@
                 <tr class="border-b">
                     <td class="py-3 px-4">{{ ronda.nombre_perdedor }}</td>
                     <td class="py-3 px-4">{{ ronda.fecha_creacion|time:"g:i A" }}</td>
+                    <td class="py-3 px-4">{{ ronda.fecha_pago|time:"g:i A" }}</td>
                     <td class="py-3 px-4 text-right font-medium">${{ ronda.get_total|floatformat:0|intcomma }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="3" class="text-center py-10 text-gray-500">No se encontraron rondas pagadas para esta fecha.</td>
+                    <td colspan="4" class="text-center py-10 text-gray-500">No se encontraron rondas pagadas para esta fecha.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    <!-- TOTAL FINAL -->
     <div class="mt-8 text-right bg-gray-800 text-white p-4 rounded-lg">
         <span class="text-2xl font-bold">GRAN TOTAL DEL DÍA:</span>
         <span class="text-2xl font-bold ml-4">${{ total_ventas|floatformat:0|intcomma }}</span>

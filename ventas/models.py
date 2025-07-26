@@ -12,27 +12,25 @@ class Mesa(models.Model):
 
     def __str__(self):
         return f"Mesa #{self.numero} ({self.get_estado_display()})"
-        # --- MÉTODO NUEVO ---
+    
     def get_pedido_abierto(self):
         """Devuelve el primer pedido con estado 'ABIERTO' para esta mesa."""
         return self.pedidos.filter(estado='ABIERTO').first()
-    # --- FIN MÉTODO NUEVO ---
 
 
 class Pedido(models.Model):
-    # CAMBIO 1: La mesa ahora es opcional
     mesa = models.ForeignKey(Mesa, on_delete=models.SET_NULL, null=True, blank=True, related_name='pedidos')
-    
-    # CAMBIO 2: Se añade un campo para el nombre del cliente/pedido
     nombre_cliente = models.CharField(max_length=100, default="Pedido sin nombre")
 
     ESTADO_CHOICES = [
         ('ABIERTO', 'Abierto'),
         ('FACTURADO', 'Facturado'),
         ('ANULADO', 'Anulado'),
+        ('CERRADO', 'Cerrado'),
     ]
     
     fecha_hora = models.DateTimeField(auto_now_add=True)
+    fecha_facturacion = models.DateTimeField(null=True, blank=True)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='ABIERTO')
 
@@ -46,7 +44,6 @@ class Pedido(models.Model):
         verbose_name = "Pedido"
         verbose_name_plural = "Pedidos"
 
-    # CAMBIO 3: El __str__ ahora es más descriptivo
     def __str__(self):
         if self.mesa:
             return f"Pedido de {self.mesa} - ({self.get_estado_display()})"
@@ -55,7 +52,13 @@ class Pedido(models.Model):
 
 class DetallePedido(models.Model):
     pedido = models.ForeignKey(Pedido, related_name='detalles', on_delete=models.CASCADE)
-    producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
+    
+    # --- CAMBIO 1: Hacemos el producto opcional ---
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT, null=True, blank=True)
+    
+    # --- CAMBIO 2: Añadimos un campo para la descripción personalizada ---
+    descripcion_personalizada = models.CharField(max_length=255, null=True, blank=True)
+    
     cantidad = models.PositiveIntegerField(default=1)
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -63,5 +66,13 @@ class DetallePedido(models.Model):
         verbose_name = "Detalle de Pedido"
         verbose_name_plural = "Detalles de Pedidos"
 
+    # --- CAMBIO 3: Añadimos un método para obtener el nombre ---
+    def get_nombre(self):
+        """Devuelve el nombre del producto o la descripción personalizada."""
+        if self.producto:
+            return self.producto.nombre
+        return self.descripcion_personalizada
+
     def __str__(self):
-        return f"{self.cantidad} x {self.producto.nombre} en Pedido #{self.pedido.id}"
+        # Usamos el nuevo método para que el admin se vea bien
+        return f"{self.cantidad} x {self.get_nombre()} en Pedido #{self.pedido.id}"

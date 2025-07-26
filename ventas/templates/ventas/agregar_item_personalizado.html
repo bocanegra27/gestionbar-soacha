@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="container mx-auto p-4 md:p-8">
+    <div class="max-w-md mx-auto bg-white shadow-md rounded-lg p-8 mt-10">
+        <h1 class="text-2xl font-bold text-center mb-6">Añadir Item Personalizado</h1>
+        <p class="text-center text-gray-600 mb-4">Para la cuenta: <strong class="text-sky-700">{{ pedido.nombre_cliente }}</strong></p>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="flex items-center justify-between mt-6">
+                <a href="{% url 'gestionar_pedido' pedido.mesa.id %}" class="text-red-600 hover:underline">Cancelar</a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Añadir a la Cuenta</button>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}

@@ -15,6 +15,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-tu-llave-secreta-loca
 # --- CONFIGURACIÓN DE DEBUG ---
 # DEBUG será True solo si la variable de entorno DEBUG se establece en 'True'
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+#DEBUG = True  #mostrar errores en la consola
 
 # --- CONFIGURACIÓN DE ALLOWED_HOSTS ---
 ALLOWED_HOSTS = []

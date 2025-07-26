@@ -16,5 +16,6 @@ urlpatterns = [
     # --- LÍNEAS NUEVAS ---
     path('pedido/<int:pedido_id>/facturar/', views.facturar_pedido_vista, name='facturar_pedido'),
     path('pedido/<int:pedido_id>/cancelar/', views.cancelar_pedido_vista, name='cancelar_pedido'),
+    path('pedido/<int:pedido_id>/agregar_item/', views.agregar_item_personalizado_vista, name='agregar_item_personalizado'),
 
 ]

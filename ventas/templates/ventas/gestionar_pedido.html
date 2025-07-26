@@ -77,13 +77,23 @@
                     </a>
                 </div>
 
+                <!-- ***** CAMBIO 1: BOTÓN NUEVO ***** -->
+                <!-- Este botón te llevará al formulario para añadir un item personalizado -->
+                <a href="{% url 'agregar_item_personalizado' pedido.id %}" class="mb-4 w-full text-center inline-block bg-gray-200 hover:bg-gray-300 text-black font-bold py-2 px-3 rounded-lg">
+                    + Añadir Item Personalizado
+                </a>
+                <!-- ***** FIN DEL CAMBIO 1 ***** -->
+
                 <!-- Lista de Productos en el Pedido -->
                 {% if pedido.detalles.all %}
                     <ul class="space-y-4 mb-4">
                         {% for item in pedido.detalles.all %}
                         <li class="border-b pb-4">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="font-semibold">{{ item.producto.nombre }}</span>
+                                <!-- ***** CAMBIO 2: USAR get_nombre() ***** -->
+                                <!-- Ahora muestra el nombre del producto o la descripción personalizada -->
+                                <span class="font-semibold">{{ item.get_nombre }}</span>
+                                <!-- ***** FIN DEL CAMBIO 2 ***** -->
                                 <span class="font-medium">${{ item.precio_venta|floatformat:0|intcomma }} c/u</span>
                             </div>
                             

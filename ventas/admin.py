@@ -2,8 +2,8 @@
 from django.contrib import admin
 from django.contrib.humanize.templatetags.humanize import intcomma
 from .models import Pedido, DetallePedido, Mesa
+from django.utils import timezone
 
-# 1. Registramos el modelo Mesa para poder gestionarlo en el admin
 admin.site.register(Mesa)
 
 class DetallePedidoInline(admin.TabularInline):
@@ -13,12 +13,28 @@ class DetallePedidoInline(admin.TabularInline):
 
 @admin.register(Pedido)
 class PedidoAdmin(admin.ModelAdmin):
-    # 2. Usamos 'total_formateado' en lugar de 'total'
-    list_display = ('id', 'mesa', 'fecha_hora', 'estado', 'total_formateado')
+    # --- CAMBIO 1: Añadimos la nueva columna 'hora_facturacion' ---
+    list_display = ('id', 'mesa', 'hora_apertura', 'hora_facturacion', 'estado', 'total_formateado')
     list_filter = ('estado', 'fecha_hora', 'mesa')
     inlines = [DetallePedidoInline]
     
-    # También añadimos 'mesa' a la lista para verla de un vistazo
+    # Renombramos la función para mayor claridad
+    def hora_apertura(self, obj):
+        local_time = timezone.localtime(obj.fecha_hora)
+        return local_time.strftime("%d/%m/%Y %I:%M %p")
+    
+    hora_apertura.short_description = 'Hora Apertura'
+
+    # --- CAMBIO 2: Añadimos la nueva función para formatear la hora de facturación ---
+    def hora_facturacion(self, obj):
+        # Comprobamos si el pedido ya ha sido facturado
+        if obj.fecha_facturacion:
+            local_time = timezone.localtime(obj.fecha_facturacion)
+            return local_time.strftime("%d/%m/%Y %I:%M %p")
+        # Si no, mostramos un guion
+        return "---"
+    
+    hora_facturacion.short_description = 'Hora Facturación'
 
     def total_formateado(self, obj):
         return f"${intcomma(int(obj.total))}"

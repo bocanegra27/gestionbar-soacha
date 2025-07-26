@@ -5,6 +5,7 @@ from django.contrib import messages
 from ventas.models import Pedido, DetallePedido
 from .models import RondaBolirana
 from .forms import DetalleRondaFormSet, FinalizarRondaForm
+from django.utils import timezone
 
 @login_required
 def iniciar_ronda_vista(request, pedido_id):
@@ -77,6 +78,7 @@ def pagar_ronda_vista(request, ronda_id):
 
         # Si todo fue bien, marcamos la ronda como pagada
         ronda.estado = 'PAGADA'
+        ronda.fecha_pago = timezone.now()
         ronda.save()
         
         # El total del pedido principal NO se actualiza, lo cual es correcto.

@@ -5,25 +5,35 @@ from django.contrib.auth.decorators import login_required
 from ventas.models import Pedido
 from juegos.models import RondaBolirana
 from .models import CierreCaja
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 @login_required
 def reporte_diario_vista(request):
-    fecha_seleccionada_str = request.GET.get('fecha', timezone.now().strftime('%Y-%m-%d'))
+    # --- CAMBIO 1: Usamos localtime para obtener la fecha correcta en Colombia ---
+    fecha_actual_colombia = timezone.localtime(timezone.now()).date()
+    fecha_seleccionada_str = request.GET.get('fecha', fecha_actual_colombia.strftime('%Y-%m-%d'))
+    # --- FIN DEL CAMBIO ---
+
     fecha_seleccionada = datetime.strptime(fecha_seleccionada_str, '%Y-%m-%d').date()
 
+    # Definimos el "día de negocio" (6 AM a 5:59 AM del día siguiente)
+    inicio_dia = timezone.make_aware(datetime.combine(fecha_seleccionada, datetime.min.time())) + timedelta(hours=6)
+    fin_dia = inicio_dia + timedelta(days=1)
+
+    # --- CAMBIO 2: Usamos fecha_facturacion y fecha_pago para mayor precisión ---
     pedidos_facturados = Pedido.objects.filter(
         estado='FACTURADO',
-        fecha_hora__date=fecha_seleccionada
-    ).order_by('fecha_hora')
+        fecha_facturacion__range=(inicio_dia, fin_dia)
+    ).order_by('fecha_facturacion')
     total_pedidos = sum(pedido.total for pedido in pedidos_facturados)
 
     rondas_pagadas = RondaBolirana.objects.filter(
         estado='PAGADA',
-        fecha_creacion__date=fecha_seleccionada
-    ).order_by('fecha_creacion')
+        fecha_pago__range=(inicio_dia, fin_dia)
+    ).order_by('fecha_pago')
     total_rondas = sum(ronda.get_total() for ronda in rondas_pagadas)
+    # --- FIN DEL CAMBIO ---
 
     total_ventas_dia = total_pedidos + total_rondas
 
@@ -37,12 +47,23 @@ def reporte_diario_vista(request):
 
 @login_required
 def cierre_caja_vista(request):
-    hoy = timezone.now().date()
-    cierre_existente = CierreCaja.objects.filter(fecha=hoy).first()
+    # --- CAMBIO 3: Usamos localtime para determinar el día de negocio ---
+    ahora = timezone.localtime(timezone.now())
+    # --- FIN DEL CAMBIO ---
 
-    # Calculamos el total de ventas del sistema para hoy (incluyendo rondas)
-    total_pedidos = sum(p.total for p in Pedido.objects.filter(estado='FACTURADO', fecha_hora__date=hoy))
-    total_rondas = sum(r.get_total() for r in RondaBolirana.objects.filter(estado='PAGADA', fecha_creacion__date=hoy))
+    if ahora.hour < 6:
+        dia_negocio = ahora.date() - timedelta(days=1)
+    else:
+        dia_negocio = ahora.date()
+
+    inicio_dia = timezone.make_aware(datetime.combine(dia_negocio, datetime.min.time())) + timedelta(hours=6)
+    fin_dia = inicio_dia + timedelta(days=1)
+    
+    cierre_existente = CierreCaja.objects.filter(fecha=dia_negocio).first()
+
+    # Usamos los campos de fecha de cierre para mayor precisión
+    total_pedidos = sum(p.total for p in Pedido.objects.filter(estado='FACTURADO', fecha_facturacion__range=(inicio_dia, fin_dia)))
+    total_rondas = sum(r.get_total() for r in RondaBolirana.objects.filter(estado='PAGADA', fecha_pago__range=(inicio_dia, fin_dia)))
     total_sistema = total_pedidos + total_rondas
 
     if request.method == 'POST':
@@ -55,7 +76,7 @@ def cierre_caja_vista(request):
                 diferencia = total_contado - total_sistema
                 
                 CierreCaja.objects.create(
-                    fecha=hoy,
+                    fecha=dia_negocio,
                     total_ventas_sistema=total_sistema,
                     total_efectivo_contado=total_contado,
                     diferencia=diferencia,
@@ -65,7 +86,7 @@ def cierre_caja_vista(request):
                 return redirect('reporte_diario')
 
     context = {
-        'hoy': hoy,
+        'hoy': dia_negocio,
         'total_sistema': total_sistema,
         'cierre_existente': cierre_existente
     }

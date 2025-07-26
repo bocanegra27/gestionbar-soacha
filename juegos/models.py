@@ -14,6 +14,7 @@ class RondaBolirana(models.Model):
     nombre_perdedor = models.CharField(max_length=100, blank=True, null=True)
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='EN_JUEGO')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_pago = models.DateTimeField(null=True, blank=True)
 
     def get_total(self):
         """Calcula el valor total de la ronda sumando el precio de sus productos."""
